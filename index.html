@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>projekt cockpit</title>
+<style>
+  :root{
+    --bg:#f5f5f3; --card:#ffffff; --ink:#1b1b1b; --muted:#8c8c88; --line:#e4e4e0;
+    --accent:#3d4b57; --accent-d:#2b343c;
+    --hoch:#a8443c; --mittel:#9c7b3a; --tief:#9aa0a2;
+    --offen:#9aa0a2; --arbeit:#3d4b57; --erledigt:#4f6b56;
+    --shadow:0 1px 2px rgba(0,0,0,.04);
+    --r:10px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"Helvetica Neue",Helvetica,Arial,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.5; letter-spacing:.1px;
+    padding-bottom:env(safe-area-inset-bottom); -webkit-font-smoothing:antialiased;
+  }
+  header.app{
+    position:sticky; top:0; z-index:40; background:#fff;
+    border-bottom:1px solid var(--line);
+    padding:15px 18px; padding-top:calc(15px + env(safe-area-inset-top));
+    display:flex; align-items:center; gap:13px;
+  }
+  header.app .logo{font-size:1.05rem; font-weight:600; letter-spacing:.5px; flex:1; display:flex; align-items:center; gap:10px; text-transform:lowercase; color:var(--ink)}
+  header.app .logo .mark{width:15px; height:15px; background:var(--accent); display:inline-block; flex:0 0 auto}
+  header.app button{background:none; color:var(--ink); border:none; border-radius:8px; padding:7px 9px; font-size:1.05rem; cursor:pointer; line-height:1}
+  header.app button:hover{background:var(--bg)}
+  .wrap{max-width:1040px; margin:0 auto; padding:22px 18px 96px}
+  h1,h2,h3{margin:0 0 .4em; font-weight:600; letter-spacing:.2px}
+  h1{font-size:1.55rem}
+  h2.section{font-size:.78rem; color:var(--muted); text-transform:uppercase; letter-spacing:1.4px; font-weight:600; margin:30px 0 13px}
+  .btn{display:inline-flex; align-items:center; gap:7px; background:var(--ink); color:#fff; border:none; border-radius:9px; padding:11px 17px; font-size:.92rem; font-weight:500; cursor:pointer; letter-spacing:.3px}
+  .btn:hover{background:#000}
+  .btn.sec{background:#fff; color:var(--ink); border:1px solid var(--line)}
+  .btn.sec:hover{background:var(--bg)}
+  .btn.danger{background:var(--hoch)}
+  .btn.small{padding:8px 12px; font-size:.84rem}
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:15px}
+  .card{background:var(--card); border-radius:var(--r); box-shadow:var(--shadow); border:1px solid var(--line); overflow:hidden}
+  .pcard{cursor:pointer; transition:border-color .15s, transform .12s; position:relative; display:flex}
+  .pcard:hover{border-color:#cfcfca; transform:translateY(-1px)}
+  .pcard .bar{width:5px; flex:0 0 auto}
+  .pcard .body{padding:16px 17px; flex:1; min-width:0}
+  .pcard h3{font-size:1.08rem; margin-bottom:5px}
+  .pcard .meta{color:var(--muted); font-size:.84rem; display:flex; align-items:center; gap:6px}
+  .pcard .stats{display:flex; gap:16px; margin-top:13px; font-size:.82rem; color:var(--muted)}
+  .pcard .stats b{color:var(--ink); font-weight:600}
+  .pill{display:inline-block; padding:2px 9px; border-radius:4px; font-size:.7rem; font-weight:600; color:#fff; letter-spacing:.4px; text-transform:uppercase}
+  .pill.hoch{background:var(--hoch)} .pill.mittel{background:var(--mittel)} .pill.tief{background:var(--tief)}
+  .pill.offen{background:var(--offen)} .pill.arbeit{background:var(--arbeit)} .pill.erledigt{background:var(--erledigt)}
+  .empty{text-align:center; color:var(--muted); padding:50px 22px; border:1px dashed var(--line); border-radius:var(--r); background:#fff; font-size:.92rem}
+  .empty .em{font-size:2rem; display:block; margin-bottom:10px; opacity:.5}
+  .tasklist{display:flex; flex-direction:column; gap:8px}
+  .trow{display:flex; align-items:center; gap:13px; background:var(--card); border:1px solid var(--line); border-radius:9px; padding:12px 14px; box-shadow:var(--shadow)}
+  .trow .check{width:23px; height:23px; border-radius:5px; border:1.5px solid #cfcfca; flex:0 0 auto; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:.85rem; color:#fff}
+  .trow .check.done{background:var(--erledigt); border-color:var(--erledigt)}
+  .trow .main{flex:1; min-width:0; cursor:pointer}
+  .trow .title{font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .trow .title.done{text-decoration:line-through; color:var(--muted)}
+  .trow .sub{font-size:.79rem; color:var(--muted); display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:3px}
+  .trow .due{font-weight:600}
+  .due.over{color:var(--hoch)} .due.soon{color:var(--mittel)}
+  .projtag{font-size:.72rem; padding:1px 8px; border-radius:4px; color:#fff; font-weight:600; letter-spacing:.3px}
+  .crumb{display:inline-flex; align-items:center; gap:7px; color:var(--muted); font-size:.85rem; margin-bottom:12px; cursor:pointer; letter-spacing:.3px}
+  .crumb:hover{color:var(--ink)}
+  .phead{display:flex; align-items:flex-start; gap:14px; margin-bottom:4px}
+  .phead .dot{width:14px;height:14px;border-radius:3px;margin-top:8px;flex:0 0 auto}
+  .tabs{display:flex; gap:0; margin:20px 0 18px; border-bottom:1px solid var(--line)}
+  .tabs button{border:none; background:transparent; padding:11px 16px; font-weight:500; color:var(--muted); cursor:pointer; font-size:.92rem; letter-spacing:.3px; border-bottom:2px solid transparent; margin-bottom:-1px}
+  .tabs button.active{color:var(--ink); border-bottom-color:var(--ink)}
+  /* Notizen */
+  .composer{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:13px; margin-bottom:20px; box-shadow:var(--shadow)}
+  .composer textarea{border:none; padding:4px 4px 8px; min-height:70px; font-size:.95rem; background:transparent}
+  .composer textarea:focus{box-shadow:none}
+  .composer-row{display:flex; align-items:center; gap:10px; border-top:1px solid var(--line); padding-top:11px}
+  .composer-row .dlab{font-size:.78rem; color:var(--muted); letter-spacing:.3px}
+  .composer-row input[type=date]{width:auto; padding:7px 9px; font-size:.85rem}
+  .composer-row .sp{flex:1}
+  .daygroup{margin-bottom:22px}
+  .dayhead{display:flex; align-items:baseline; gap:10px; margin:0 2px 10px; padding-bottom:7px; border-bottom:1px solid var(--line)}
+  .dayhead .dh{font-weight:600; font-size:.98rem; letter-spacing:.3px}
+  .dayhead .dn{font-size:.78rem; color:var(--muted)}
+  .note{background:var(--card); border:1px solid var(--line); border-radius:9px; padding:13px 15px; box-shadow:var(--shadow); margin-bottom:8px; white-space:pre-wrap; word-wrap:break-word; font-size:.95rem}
+  .note .when{font-size:.74rem; color:var(--muted); margin-top:9px; display:flex; justify-content:space-between; align-items:center; letter-spacing:.3px}
+  .appt{display:flex; gap:14px; align-items:flex-start; background:var(--card); border:1px solid var(--line); border-radius:9px; padding:13px 15px; box-shadow:var(--shadow); margin-bottom:8px}
+  .appt .date{flex:0 0 auto; text-align:center; border:1px solid var(--line); border-radius:7px; padding:6px 9px; min-width:54px}
+  .appt .date .d{font-size:1.25rem; font-weight:600; line-height:1}
+  .appt .date .m{font-size:.68rem; text-transform:uppercase; color:var(--muted); letter-spacing:.5px; margin-top:2px}
+  .appt .info{flex:1; min-width:0}
+  .appt .info .t{font-weight:500}
+  .appt .info .s{font-size:.82rem; color:var(--muted)}
+  .linkbtn{background:none; border:none; color:var(--muted); cursor:pointer; font-size:.8rem; padding:4px; letter-spacing:.3px}
+  .linkbtn:hover{color:var(--hoch)}
+  .overlay{position:fixed; inset:0; background:rgba(20,20,20,.45); display:none; align-items:flex-end; justify-content:center; z-index:60}
+  .overlay.open{display:flex}
+  @media(min-width:620px){.overlay{align-items:center; padding:20px}}
+  .modal{background:#fff; width:100%; max-width:540px; border-radius:14px 14px 0 0; padding:22px 20px calc(22px + env(safe-area-inset-bottom)); max-height:92vh; overflow:auto; box-shadow:0 -6px 34px rgba(0,0,0,.2)}
+  @media(min-width:620px){.modal{border-radius:14px}}
+  .modal h3{font-size:1.15rem; margin-bottom:16px}
+  label.fld{display:block; margin-bottom:14px}
+  label.fld .lab{display:block; font-size:.78rem; font-weight:600; color:var(--muted); margin-bottom:6px; letter-spacing:.6px; text-transform:uppercase}
+  input,textarea,select{width:100%; font:inherit; padding:11px 12px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink)}
+  textarea{min-height:90px; resize:vertical; line-height:1.5}
+  input:focus,textarea:focus,select:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 2px rgba(61,75,87,.15)}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:11px}
+  .modalbtns{display:flex; gap:10px; margin-top:6px}
+  .modalbtns .btn{flex:1; justify-content:center}
+  .swatch{display:flex; gap:9px; flex-wrap:wrap}
+  .swatch .s{width:32px; height:32px; border-radius:6px; cursor:pointer; border:2px solid transparent}
+  .swatch .s.sel{border-color:var(--ink); box-shadow:0 0 0 1px #fff inset}
+  .fab{position:fixed; right:20px; bottom:calc(20px + env(safe-area-inset-bottom)); z-index:45; border-radius:30px; box-shadow:0 3px 12px rgba(0,0,0,.18)}
+  .toast{position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(80px); background:var(--ink); color:#fff; padding:11px 18px; border-radius:8px; font-size:.88rem; z-index:80; opacity:0; transition:.25s; letter-spacing:.3px}
+  .toast.show{transform:translateX(-50%) translateY(0); opacity:1}
+  .syncbadge{font-size:.7rem; padding:4px 9px; border-radius:5px; border:1px solid var(--line); color:var(--muted); letter-spacing:.4px; text-transform:uppercase}
+  .muted{color:var(--muted)}
+  .hint{font-size:.84rem; color:var(--muted); background:var(--bg); border:1px solid var(--line); border-radius:9px; padding:13px 14px; margin-bottom:15px; line-height:1.55}
+  code{background:var(--bg); padding:1px 6px; border-radius:4px; font-size:.85em}
+  /* Kalender */
+  .cal-wrap{zoom:0.9; transform-origin:top left}
+  .cal-head{display:flex; align-items:center; gap:12px; margin-bottom:11px}
+  .cal-title{font-weight:600; font-size:1rem; min-width:160px; text-align:center; letter-spacing:.3px}
+  .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:var(--r); overflow:hidden; box-shadow:var(--shadow)}
+  .cal-wd{background:var(--bg); padding:7px 4px; text-align:center; font-size:.7rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.6px}
+  .cal-day{background:#fff; min-height:80px; padding:5px 5px 6px; display:flex; flex-direction:column; gap:3px}
+  .cal-day.out{background:#fafafa}
+  .cal-day.out .cal-dn{color:#cccac4}
+  .cal-day.tdy{outline:2px solid var(--accent); outline-offset:-2px}
+  .cal-dn{font-size:.78rem; font-weight:600}
+  .cal-ap{font-size:.67rem; color:#fff; border-radius:3px; padding:1px 5px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; line-height:1.4}
+  @media(max-width:560px){ .cal-day{min-height:54px} .cal-ap{font-size:.6rem; padding:1px 3px} .cal-title{min-width:120px; font-size:.9rem} }
+  /* Zeitstrahl */
+  .tl-legend{display:flex; gap:20px; font-size:.8rem; color:var(--muted); margin-bottom:9px; align-items:center}
+  .tl-legend span{display:inline-flex; align-items:center; gap:6px}
+  .tl-scroll{overflow-x:auto; border:1px solid var(--line); border-radius:var(--r); background:#fff; box-shadow:var(--shadow)}
+  .tl-inner{display:inline-block; min-width:100%}
+  .tl-lane{display:flex; align-items:stretch; border-bottom:1px solid var(--line)}
+  .tl-lane:last-child{border-bottom:none}
+  .tl-label{position:sticky; left:0; z-index:2; background:#fff; width:124px; min-width:124px; padding:9px 12px; font-size:.82rem; font-weight:500; border-right:1px solid var(--line); display:flex; align-items:center; gap:7px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis}
+  .tl-dot{width:9px; height:9px; border-radius:2px; flex:0 0 auto}
+  .tl-track{position:relative; height:42px; flex:0 0 auto}
+  .tl-grid{position:absolute; top:0; bottom:0; width:1px; background:var(--line)}
+  .tl-now{position:absolute; top:0; bottom:0; width:2px; background:var(--accent); opacity:.5}
+  .tl-ax{position:absolute; top:6px; font-size:.68rem; color:var(--muted); white-space:nowrap; transform:translateX(3px)}
+  .tl-axisrow .tl-track{height:25px} .tl-axisrow, .tl-axisrow .tl-label{background:var(--bg)}
+  .tl-m{position:absolute; transform:translateX(-50%); box-shadow:0 0 0 2px #fff; cursor:default}
+  .tl-ap{top:8px; width:13px; height:13px; border-radius:50%}
+  .tl-tk{bottom:8px; width:12px; height:12px; border-radius:2px}
+  .tl-m.leg{position:static; transform:none; display:inline-block; box-shadow:none; width:11px; height:11px; background:var(--muted)}
+</style>
+</head>
+<body>
+<header class="app">
+  <div class="logo"><span class="mark"></span> projekt cockpit</div>
+  <span id="syncBadge" class="syncbadge">lokal</span>
+  <button id="btnSettings" title="Einstellungen">⚙</button>
+</header>
+
+<div class="wrap" id="view"></div>
+
+<button class="btn fab" id="fab" style="display:none">＋ Neu</button>
+
+<div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+"use strict";
+/* ============================================================
+   projekt cockpit  -  Single-File App
+   Daten lokal (localStorage). Optionale Supabase-Sync.
+   ============================================================ */
+
+const COLORS = ["#3d4b57","#6b7d52","#8a6d3b","#7d4a4a","#4a5d6b","#5c5470","#3f6b5f","#2b343c"];
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const LS_KEY = "projektcockpit_v1";
+const CFG_KEY = "projektcockpit_cfg";
+
+let DB = { projects:[], tasks:[], notes:[], appts:[] };
+let CFG = { url:"", key:"" };
+let sb = null;
+let route = { page:"dash", projectId:null, tab:"aufgaben" };
+let calY=null, calM=null;
+const MONTHS_FULL=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+const WD2=["Mo","Di","Mi","Do","Fr","Sa","So"];
+function isoOf(d){ const o=d.getTimezoneOffset(); return new Date(d-o*60000).toISOString().slice(0,10); }
+
+/* ---------- Persistence ---------- */
+function loadLocal(){
+  try{ const r=localStorage.getItem(LS_KEY); if(r) DB=JSON.parse(r); }catch(e){}
+  try{ const c=localStorage.getItem(CFG_KEY); if(c) CFG=JSON.parse(c); }catch(e){}
+  // Migration: Notizen ohne Datum erhalten Erstell- bzw. heutiges Datum
+  (DB.notes||[]).forEach(n=>{ if(!n.date) n.date = n.created ? n.created.slice(0,10) : today(); });
+}
+function saveLocal(){ localStorage.setItem(LS_KEY, JSON.stringify(DB)); }
+function saveCfg(){ localStorage.setItem(CFG_KEY, JSON.stringify(CFG)); }
+
+/* ---------- Supabase ---------- */
+function cleanUrl(u){ return (u||"").trim().replace(/\/rest\/v1\/?$/i,"").replace(/\/+$/,""); }
+function initSync(){
+  sb=null;
+  const url=cleanUrl(CFG.url), key=(CFG.key||"").trim();
+  if(url && key && window.supabase){
+    try{ sb = window.supabase.createClient(url, key); }catch(e){ sb=null; }
+  }
+  updateSyncBadge();
+}
+function updateSyncBadge(){
+  const b=document.getElementById("syncBadge");
+  if(sb){ b.textContent="sync"; b.style.color="var(--accent)"; b.style.borderColor="var(--accent)"; }
+  else { b.textContent="lokal"; b.style.color="var(--muted)"; b.style.borderColor="var(--line)"; }
+}
+const TABLES=["projects","tasks","notes","appts"];
+async function pull(){
+  if(!sb) return;
+  try{
+    for(const t of TABLES){
+      const {data,error}=await sb.from(t).select("*");
+      if(error){ error._table=t; throw error; }
+      DB[t]=data||[];
+    }
+    (DB.notes||[]).forEach(n=>{ if(!n.date) n.date=n.created?n.created.slice(0,10):today(); });
+    saveLocal();
+  }catch(e){
+    const detail="["+(e._table||"?")+"] "+(e.message||e.code||e.hint||JSON.stringify(e));
+    toast("Sync-Fehler beim Laden: "+detail, 9000);
+    console.error("Sync-Fehler:", e);
+  }
+}
+async function upsert(table,row){
+  saveLocal();
+  if(!sb) return;
+  try{ const {error}=await sb.from(table).upsert(row); if(error) throw error; }
+  catch(e){ toast("Sync-Fehler beim Speichern"); console.error(e); }
+}
+async function removeRow(table,id){
+  saveLocal();
+  if(!sb) return;
+  try{ const {error}=await sb.from(table).delete().eq("id",id); if(error) throw error; }
+  catch(e){ toast("Sync-Fehler beim Löschen"); console.error(e); }
+}
+
+/* ---------- Helpers ---------- */
+function toast(msg,ms){
+  const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),ms||2200);
+}
+function esc(s){ return (s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+const MON=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+const WD=["So","Mo","Di","Mi","Do","Fr","Sa"];
+function fmtDate(iso){ if(!iso) return ""; const d=new Date(iso+(iso.length<=10?"T00:00":"")); return d.getDate()+". "+MON[d.getMonth()]+" "+d.getFullYear(); }
+function fmtDayLong(iso){ const d=new Date(iso+"T00:00"); return WD[d.getDay()]+", "+d.getDate()+". "+MON[d.getMonth()]+" "+d.getFullYear(); }
+function today(){ const d=new Date(); const o=d.getTimezoneOffset(); return new Date(d-o*60000).toISOString().slice(0,10); }
+function daysTo(iso){ if(!iso) return null; const a=new Date(today()), b=new Date(iso.slice(0,10)); return Math.round((b-a)/86400000); }
+function dueClass(iso,status){ if(status==="erledigt"||!iso) return ""; const d=daysTo(iso); if(d<0) return "over"; if(d<=3) return "soon"; return ""; }
+function dueLabel(iso,status){
+  if(!iso) return ""; const d=daysTo(iso);
+  if(status==="erledigt") return fmtDate(iso);
+  if(d<0) return "überfällig ("+fmtDate(iso)+")";
+  if(d===0) return "heute fällig";
+  if(d===1) return "morgen fällig";
+  if(d<=7) return "in "+d+" Tagen";
+  return fmtDate(iso);
+}
+const PRIO_RANK={hoch:0,mittel:1,tief:2};
+function projColor(id){ const p=DB.projects.find(x=>x.id===id); return p?p.color:"#999"; }
+function projName(id){ const p=DB.projects.find(x=>x.id===id); return p?p.name:"?"; }
+function relDay(iso){ const d=daysTo(iso); if(d===0) return "heute"; if(d===-1) return "gestern"; if(d===1) return "morgen"; if(d<0) return "vor "+(-d)+" Tagen"; return "in "+d+" Tagen"; }
+
+/* ============================================================ RENDER ============================================================ */
+function render(){
+  if(route.page==="dash") renderDash();
+  else if(route.page==="project") renderProject();
+}
+
+/* ---------- Kalender (Monat, nur Termine) ---------- */
+function calShift(delta){
+  if(calY==null){ const d=new Date(); calY=d.getFullYear(); calM=d.getMonth(); }
+  calM+=delta; if(calM<0){ calM=11; calY--; } if(calM>11){ calM=0; calY++; }
+  render();
+}
+window.calShift=calShift;
+function buildCalendar(){
+  if(calY==null){ const d=new Date(); calY=d.getFullYear(); calM=d.getMonth(); }
+  const first=new Date(calY,calM,1);
+  const startOffset=(first.getDay()+6)%7;
+  const start=new Date(calY,calM,1-startOffset);
+  const last=new Date(calY,calM+1,0);
+  const endOffset=6-((last.getDay()+6)%7);
+  const end=new Date(calY,calM+1,endOffset);
+  const todayISO=today();
+  let head=WD2.map(w=>`<div class="cal-wd">${w}</div>`).join("");
+  let cells=""; let d=new Date(start);
+  while(d<=end){
+    const iso=isoOf(d), inMonth=d.getMonth()===calM;
+    const aps=DB.appts.filter(a=>a.date===iso).sort((a,b)=>(a.time||"")<(b.time||"")?-1:1);
+    const chips=aps.map(a=>`<div class="cal-ap" style="background:${projColor(a.project_id)}" title="${esc(a.title)} – ${esc(projName(a.project_id))}${a.time?' '+esc(a.time):''}" onclick="toast(this.title)">${a.time?esc(a.time)+" ":""}${esc(a.title)}</div>`).join("");
+    cells+=`<div class="cal-day ${inMonth?"":"out"} ${iso===todayISO?"tdy":""}"><div class="cal-dn">${d.getDate()}</div>${chips}</div>`;
+    d.setDate(d.getDate()+1);
+  }
+  return `<div class="cal-head"><button class="btn sec small" onclick="calShift(-1)">‹</button><div class="cal-title">${MONTHS_FULL[calM]} ${calY}</div><button class="btn sec small" onclick="calShift(1)">›</button></div>
+    <div class="cal-grid">${head}${cells}</div>`;
+}
+
+/* ---------- Zeitstrahl (8 Wochen, Projekte übereinander) ---------- */
+function buildTimeline(){
+  const DAYS=56, pxDay=12, trackW=DAYS*pxDay;
+  const start=new Date(today()+"T00:00");
+  const offsetOf=iso=>Math.round((new Date(iso+"T00:00")-start)/86400000);
+  const projects=DB.projects.slice().sort((a,b)=>a.name.localeCompare(b.name));
+  let grid="", axis="";
+  for(let i=0;i<=DAYS;i+=7){
+    const x=i*pxDay; grid+=`<div class="tl-grid" style="left:${x}px"></div>`;
+    const ld=new Date(start.getFullYear(),start.getMonth(),start.getDate()+i);
+    axis+=`<div class="tl-ax" style="left:${x}px">${ld.getDate()}. ${MON[ld.getMonth()]}</div>`;
+  }
+  let lanes=""; let any=false;
+  projects.forEach(p=>{
+    const aps=DB.appts.filter(a=>{const o=offsetOf(a.date); return o>=0&&o<=DAYS;});
+    const tks=DB.tasks.filter(t=>{ if(t.status==="erledigt"||!t.due) return false; const o=offsetOf(t.due); return o>=0&&o<=DAYS; });
+    const myAps=aps.filter(a=>a.project_id===p.id), myTks=tks.filter(t=>t.project_id===p.id);
+    if(myAps.length===0&&myTks.length===0) return;
+    any=true; let marks="";
+    myAps.forEach(a=>{ const x=offsetOf(a.date)*pxDay; marks+=`<div class="tl-m tl-ap" style="left:${x}px;background:${p.color}" title="Termin: ${esc(a.title)} · ${fmtDate(a.date)}${a.time?' '+esc(a.time):''}" onclick="toast(this.title)"></div>`; });
+    myTks.forEach(t=>{ const x=offsetOf(t.due)*pxDay; marks+=`<div class="tl-m tl-tk" style="left:${x}px;background:${p.color}" title="Fällig: ${esc(t.title)} · ${fmtDate(t.due)} (${t.prio})" onclick="toast(this.title)"></div>`; });
+    lanes+=`<div class="tl-lane"><div class="tl-label" title="${esc(p.name)}"><span class="tl-dot" style="background:${p.color}"></span>${esc(p.name)}</div><div class="tl-track" style="width:${trackW}px">${grid}<div class="tl-now" style="left:0"></div>${marks}</div></div>`;
+  });
+  if(!any) return `<div class="empty"><span class="em">◷</span>Keine Termine oder Fälligkeiten in den nächsten 8 Wochen.</div>`;
+  const axisrow=`<div class="tl-lane tl-axisrow"><div class="tl-label"></div><div class="tl-track" style="width:${trackW}px">${axis}</div></div>`;
+  return `<div class="tl-legend"><span><span class="tl-m tl-ap leg"></span>Termin</span><span><span class="tl-m tl-tk leg"></span>Aufgabe fällig</span><span style="margin-left:auto">Pro Zeile ein Projekt · scrollbar →</span></div>
+    <div class="tl-scroll"><div class="tl-inner">${axisrow}${lanes}</div></div>`;
+}
+
+function renderDash(){
+  const fab=document.getElementById("fab"); fab.style.display="inline-flex"; fab.onclick=()=>openProjectModal();
+  const v=document.getElementById("view");
+  const projects=DB.projects.slice().sort((a,b)=>a.name.localeCompare(b.name));
+  const urgent=DB.tasks.filter(t=>t.status!=="erledigt").sort((a,b)=>{
+      if(a.due&&b.due){ if(a.due!==b.due) return a.due<b.due?-1:1; }
+      else if(a.due) return -1; else if(b.due) return 1;
+      return (PRIO_RANK[a.prio]??1)-(PRIO_RANK[b.prio]??1);
+    }).slice(0,8);
+
+  let html=`<h1>Übersicht</h1>`;
+  // 1) Projekte
+  html+=`<h2 class="section">Projekte</h2>`;
+  if(projects.length===0){
+    html+=`<div class="empty"><span class="em">▦</span>Noch keine Projekte. Unten auf „＋ Neu“ tippen.</div>`;
+  }else{
+    html+=`<div class="grid">`;
+    projects.forEach(p=>{
+      const open=DB.tasks.filter(t=>t.project_id===p.id&&t.status!=="erledigt").length;
+      const over=DB.tasks.filter(t=>t.project_id===p.id&&t.status!=="erledigt"&&t.due&&daysTo(t.due)<0).length;
+      const nextAppt=DB.appts.filter(a=>a.project_id===p.id&&a.date>=today()).sort((a,b)=>a.date<b.date?-1:1)[0];
+      html+=`<div class="card pcard" onclick="goProject('${p.id}')">
+        <div class="bar" style="background:${p.color}"></div>
+        <div class="body">
+          <h3>${esc(p.name)}</h3>
+          <div class="meta">${p.address?"◈ "+esc(p.address):'<span class="muted">Kein Standort</span>'}</div>
+          <div class="stats">
+            <span><b>${open}</b> offen${over?` · <span style="color:var(--hoch)"><b>${over}</b> überfällig</span>`:""}</span>
+            ${nextAppt?`<span>◷ ${fmtDate(nextAppt.date)}</span>`:""}
+          </div>
+        </div>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+  // 2) Dringendste Aufgaben
+  html+=`<h2 class="section">Dringendste Aufgaben</h2>`;
+  if(urgent.length===0){
+    html+=`<div class="empty"><span class="em">✓</span>Keine offenen Aufgaben.</div>`;
+  }else{
+    html+=`<div class="tasklist">`; urgent.forEach(t=>html+=taskRow(t,true)); html+=`</div>`;
+  }
+  // 3) Zeitstrahl
+  html+=`<h2 class="section">Zeitstrahl · nächste 8 Wochen</h2>`;
+  html+=buildTimeline();
+  // 4) Kalender
+  html+=`<h2 class="section">Kalender</h2>`;
+  html+=`<div class="cal-wrap">`+buildCalendar()+`</div>`;
+  v.innerHTML=html;
+}
+
+function taskRow(t, showProj){
+  const done=t.status==="erledigt";
+  return `<div class="trow">
+    <div class="check ${done?'done':''}" onclick="event.stopPropagation();toggleTask('${t.id}')">${done?'✓':''}</div>
+    <div class="main" onclick="${showProj?`goProject('${t.project_id}')`:`editTask('${t.id}')`}">
+      <div class="title ${done?'done':''}">${esc(t.title)}</div>
+      <div class="sub">
+        ${showProj?`<span class="projtag" style="background:${projColor(t.project_id)}">${esc(projName(t.project_id))}</span>`:""}
+        <span class="pill ${t.prio}">${t.prio}</span>
+        ${t.due?`<span class="due ${dueClass(t.due,t.status)}">${dueLabel(t.due,t.status)}</span>`:""}
+      </div>
+    </div>
+  </div>`;
+}
+
+function goProject(id){ route={page:"project",projectId:id,tab:route.tab||"aufgaben"}; window.scrollTo(0,0); render(); }
+function goDash(){ route={page:"dash"}; window.scrollTo(0,0); render(); }
+window.goProject=goProject; window.goDash=goDash;
+
+function renderProject(){
+  const p=DB.projects.find(x=>x.id===route.projectId);
+  if(!p){ goDash(); return; }
+  const v=document.getElementById("view");
+  const fab=document.getElementById("fab"); fab.style.display="inline-flex"; fab.onclick=()=>fabProject();
+  let html=`<div class="crumb" onclick="goDash()">← Alle Projekte</div>
+    <div class="phead">
+      <div class="dot" style="background:${p.color}"></div>
+      <div style="flex:1">
+        <h1 style="margin-bottom:3px">${esc(p.name)}</h1>
+        <div class="meta muted">${p.address?"◈ "+esc(p.address):"Kein Standort hinterlegt"}</div>
+      </div>
+      <button class="btn sec small" onclick="openProjectModal('${p.id}')">Bearbeiten</button>
+    </div>
+    <div class="tabs">
+      <button class="${route.tab==='aufgaben'?'active':''}" onclick="setTab('aufgaben')">Aufgaben</button>
+      <button class="${route.tab==='notizen'?'active':''}" onclick="setTab('notizen')">Notizen</button>
+      <button class="${route.tab==='termine'?'active':''}" onclick="setTab('termine')">Termine</button>
+    </div>`;
+  if(route.tab==="aufgaben") html+=renderTasksTab(p);
+  else if(route.tab==="notizen") html+=renderNotesTab(p);
+  else html+=renderApptsTab(p);
+  v.innerHTML=html;
+  if(route.tab==="notizen"){ const qd=document.getElementById("qn_date"); if(qd&&!qd.value) qd.value=today(); }
+}
+function setTab(t){ route.tab=t; render(); }
+window.setTab=setTab;
+function fabProject(){
+  if(route.tab==="aufgaben") editTask(null,route.projectId);
+  else if(route.tab==="notizen"){ const e=document.getElementById("qn_body"); if(e){ e.focus(); e.scrollIntoView({behavior:"smooth",block:"center"}); } }
+  else editAppt(null,route.projectId);
+}
+
+function renderTasksTab(p){
+  const tasks=DB.tasks.filter(t=>t.project_id===p.id);
+  const open=tasks.filter(t=>t.status!=="erledigt").sort((a,b)=>{
+    if(a.due&&b.due&&a.due!==b.due) return a.due<b.due?-1:1;
+    if(a.due&&!b.due) return -1; if(b.due&&!a.due) return 1;
+    return (PRIO_RANK[a.prio]??1)-(PRIO_RANK[b.prio]??1);
+  });
+  const done=tasks.filter(t=>t.status==="erledigt");
+  let h="";
+  if(tasks.length===0) return `<div class="empty"><span class="em">▤</span>Noch keine Aufgaben. Unten auf „＋ Neu“ tippen.</div>`;
+  h+=`<div class="tasklist">`; open.forEach(t=>h+=taskRowDetail(t)); h+=`</div>`;
+  if(done.length){ h+=`<h2 class="section" style="margin-top:24px">Erledigt (${done.length})</h2><div class="tasklist">`; done.forEach(t=>h+=taskRowDetail(t)); h+=`</div>`; }
+  return h;
+}
+function taskRowDetail(t){
+  const done=t.status==="erledigt";
+  const statusPill=t.status==="in_arbeit"?`<span class="pill arbeit">in Arbeit</span>`:(done?`<span class="pill erledigt">erledigt</span>`:`<span class="pill offen">offen</span>`);
+  return `<div class="trow">
+    <div class="check ${done?'done':''}" onclick="event.stopPropagation();toggleTask('${t.id}')">${done?'✓':''}</div>
+    <div class="main" onclick="editTask('${t.id}')">
+      <div class="title ${done?'done':''}">${esc(t.title)}</div>
+      <div class="sub"><span class="pill ${t.prio}">${t.prio}</span>${statusPill}${t.due?`<span class="due ${dueClass(t.due,t.status)}">${dueLabel(t.due,t.status)}</span>`:""}</div>
+    </div>
+    <button class="linkbtn" onclick="event.stopPropagation();delTask('${t.id}')">✕</button>
+  </div>`;
+}
+
+/* ---------- Notizen: nach Besprechungsdatum gruppiert ---------- */
+function renderNotesTab(p){
+  let h=`<div class="composer">
+    <textarea id="qn_body" placeholder="Notiz zur Besprechung erfassen – Fliesstext, Abkürzungen, mehrere Punkte. Mit „Hinzufügen“ wird sie unter dem gewählten Datum abgelegt."></textarea>
+    <div class="composer-row">
+      <span class="dlab">Besprechung am</span>
+      <input type="date" id="qn_date" value="${today()}">
+      <span class="sp"></span>
+      <button class="btn small" onclick="quickNote('${p.id}')">Hinzufügen</button>
+    </div>
+  </div>`;
+  const notes=DB.notes.filter(n=>n.project_id===p.id).sort((a,b)=>{
+    if(a.date!==b.date) return a.date<b.date?1:-1;
+    return (a.created||"")<(b.created||"")?1:-1;
+  });
+  if(notes.length===0){ h+=`<div class="empty"><span class="em">▭</span>Noch keine Notizen. Oben erfassen.</div>`; return h; }
+  const groups={};
+  notes.forEach(n=>{ (groups[n.date]=groups[n.date]||[]).push(n); });
+  Object.keys(groups).sort((a,b)=>a<b?1:-1).forEach(date=>{
+    h+=`<div class="daygroup"><div class="dayhead"><span class="dh">${fmtDayLong(date)}</span><span class="dn">${relDay(date)} · ${groups[date].length} Notiz${groups[date].length>1?"en":""}</span></div>`;
+    groups[date].forEach(n=>{
+      h+=`<div class="note">${esc(n.body)}
+        <div class="when"><span>${n.created?fmtTime(n.created):""}</span>
+          <span><button class="linkbtn" onclick="editNote('${n.id}')">Bearbeiten</button>
+          <button class="linkbtn" onclick="delNote('${n.id}')">Löschen</button></span></div>
+      </div>`;
+    });
+    h+=`</div>`;
+  });
+  return h;
+}
+function fmtTime(iso){ const d=new Date(iso); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+" Uhr"; }
+async function quickNote(projectId){
+  const body=document.getElementById("qn_body").value.trim();
+  const date=document.getElementById("qn_date").value||today();
+  if(!body){ toast("Bitte Notiztext eingeben"); return; }
+  const n={id:uid(),project_id:projectId,date,body,created:new Date().toISOString()};
+  DB.notes.push(n); await upsert("notes",n);
+  render(); const qd=document.getElementById("qn_date"); if(qd) qd.value=date; toast("Notiz gespeichert");
+}
+window.quickNote=quickNote;
+
+function renderApptsTab(p){
+  const appts=DB.appts.filter(a=>a.project_id===p.id).sort((a,b)=> (a.date+(a.time||""))<(b.date+(b.time||""))?-1:1);
+  const upcoming=appts.filter(a=>a.date>=today());
+  const past=appts.filter(a=>a.date<today());
+  if(appts.length===0) return `<div class="empty"><span class="em">◷</span>Noch keine Termine. Unten auf „＋ Neu“ tippen.</div>`;
+  let h=""; upcoming.forEach(a=>h+=apptRow(a));
+  if(past.length){ h+=`<h2 class="section" style="margin-top:24px">Vergangen</h2>`; past.reverse().forEach(a=>h+=apptRow(a,true)); }
+  return h;
+}
+function apptRow(a,pastFlag){
+  const d=new Date(a.date+"T00:00");
+  return `<div class="appt" style="${pastFlag?'opacity:.55':''}">
+    <div class="date"><div class="d">${d.getDate()}</div><div class="m">${MON[d.getMonth()]}</div></div>
+    <div class="info">
+      <div class="t">${esc(a.title)}</div>
+      <div class="s">${a.time?"◷ "+esc(a.time)+"   ":""}${a.place?"◈ "+esc(a.place):""}</div>
+      ${a.note?`<div class="s" style="margin-top:3px">${esc(a.note)}</div>`:""}
+    </div>
+    <div><button class="linkbtn" onclick="editAppt('${a.id}')">✎</button><button class="linkbtn" onclick="delAppt('${a.id}')">✕</button></div>
+  </div>`;
+}
+
+/* ============================================================ MODALS / CRUD ============================================================ */
+const ov=document.getElementById("overlay"), md=document.getElementById("modal");
+function openModal(html){ md.innerHTML=html; ov.classList.add("open"); }
+function closeModal(){ ov.classList.remove("open"); }
+ov.addEventListener("click",e=>{ if(e.target===ov) closeModal(); });
+window.closeModal=closeModal;
+
+function openProjectModal(id){
+  const p=id?DB.projects.find(x=>x.id===id):{id:null,name:"",address:"",color:COLORS[0]};
+  openModal(`<h3>${id?"Projekt bearbeiten":"Neues Projekt"}</h3>
+    <label class="fld"><span class="lab">Projektname</span><input id="p_name" value="${esc(p.name)}" placeholder="z.B. Neubau Halle Müller"></label>
+    <label class="fld"><span class="lab">Standort / Adresse</span><input id="p_addr" value="${esc(p.address||"")}" placeholder="Strasse, Ort"></label>
+    <label class="fld"><span class="lab">Farbe</span><div class="swatch" id="p_sw">${COLORS.map(c=>`<div class="s ${c===p.color?'sel':''}" style="background:${c}" data-c="${c}"></div>`).join("")}</div></label>
+    <div class="modalbtns">
+      ${id?`<button class="btn danger small" onclick="delProject('${id}')">Löschen</button>`:""}
+      <button class="btn sec" onclick="closeModal()">Abbrechen</button>
+      <button class="btn" onclick="saveProject('${id||""}')">Speichern</button>
+    </div>`);
+  let sel=p.color;
+  md.querySelectorAll("#p_sw .s").forEach(el=>el.onclick=()=>{ md.querySelectorAll("#p_sw .s").forEach(x=>x.classList.remove("sel")); el.classList.add("sel"); sel=el.dataset.c; });
+  md._color=()=>sel;
+}
+window.openProjectModal=openProjectModal;
+async function saveProject(id){
+  const name=document.getElementById("p_name").value.trim();
+  if(!name){ toast("Bitte Projektname eingeben"); return; }
+  const color=md._color(); const addr=document.getElementById("p_addr").value.trim();
+  if(id){ const p=DB.projects.find(x=>x.id===id); p.name=name; p.address=addr; p.color=color; await upsert("projects",p); }
+  else { const p={id:uid(),name,address:addr,color,created:new Date().toISOString()}; DB.projects.push(p); await upsert("projects",p); }
+  closeModal(); render(); toast("Projekt gespeichert");
+}
+window.saveProject=saveProject;
+async function delProject(id){
+  if(!confirm("Projekt inkl. aller Aufgaben, Notizen und Termine löschen?")) return;
+  for(const t of DB.tasks.filter(x=>x.project_id===id)) await removeRow("tasks",t.id);
+  for(const n of DB.notes.filter(x=>x.project_id===id)) await removeRow("notes",n.id);
+  for(const a of DB.appts.filter(x=>x.project_id===id)) await removeRow("appts",a.id);
+  DB.projects=DB.projects.filter(x=>x.id!==id);
+  DB.tasks=DB.tasks.filter(x=>x.project_id!==id); DB.notes=DB.notes.filter(x=>x.project_id!==id); DB.appts=DB.appts.filter(x=>x.project_id!==id);
+  await removeRow("projects",id);
+  closeModal(); goDash(); toast("Projekt gelöscht");
+}
+window.delProject=delProject;
+
+function editTask(id,projectId){
+  const t=id?DB.tasks.find(x=>x.id===id):{id:null,project_id:projectId,title:"",due:"",prio:"mittel",status:"offen"};
+  openModal(`<h3>${id?"Aufgabe bearbeiten":"Neue Aufgabe"}</h3>
+    <label class="fld"><span class="lab">Aufgabe</span><input id="t_title" value="${esc(t.title)}" placeholder="Was ist zu tun?"></label>
+    <label class="fld"><span class="lab">Fällig am</span><input id="t_due" type="date" value="${t.due||""}"></label>
+    <div class="row2">
+      <label class="fld"><span class="lab">Priorität</span><select id="t_prio">${["hoch","mittel","tief"].map(x=>`<option value="${x}" ${t.prio===x?"selected":""}>${x}</option>`).join("")}</select></label>
+      <label class="fld"><span class="lab">Status</span><select id="t_status">${[["offen","offen"],["in_arbeit","in Arbeit"],["erledigt","erledigt"]].map(x=>`<option value="${x[0]}" ${t.status===x[0]?"selected":""}>${x[1]}</option>`).join("")}</select></label>
+    </div>
+    <div class="modalbtns"><button class="btn sec" onclick="closeModal()">Abbrechen</button><button class="btn" onclick="saveTask('${id||""}','${t.project_id}')">Speichern</button></div>`);
+}
+window.editTask=editTask;
+async function saveTask(id,projectId){
+  const title=document.getElementById("t_title").value.trim();
+  if(!title){ toast("Bitte Aufgabe eingeben"); return; }
+  const due=document.getElementById("t_due").value, prio=document.getElementById("t_prio").value, status=document.getElementById("t_status").value;
+  if(id){ const t=DB.tasks.find(x=>x.id===id); Object.assign(t,{title,due,prio,status}); await upsert("tasks",t); }
+  else { const t={id:uid(),project_id:projectId,title,due,prio,status,created:new Date().toISOString()}; DB.tasks.push(t); await upsert("tasks",t); }
+  closeModal(); render(); toast("Aufgabe gespeichert");
+}
+window.saveTask=saveTask;
+async function toggleTask(id){ const t=DB.tasks.find(x=>x.id===id); if(!t) return; t.status=t.status==="erledigt"?"offen":"erledigt"; await upsert("tasks",t); render(); }
+window.toggleTask=toggleTask;
+async function delTask(id){ if(!confirm("Aufgabe löschen?")) return; DB.tasks=DB.tasks.filter(x=>x.id!==id); await removeRow("tasks",id); render(); }
+window.delTask=delTask;
+
+function editNote(id){
+  const n=DB.notes.find(x=>x.id===id); if(!n) return;
+  openModal(`<h3>Notiz bearbeiten</h3>
+    <label class="fld"><span class="lab">Besprechung am</span><input id="n_date" type="date" value="${n.date}"></label>
+    <label class="fld"><span class="lab">Notiz</span><textarea id="n_body">${esc(n.body)}</textarea></label>
+    <div class="modalbtns"><button class="btn sec" onclick="closeModal()">Abbrechen</button><button class="btn" onclick="saveNote('${id}')">Speichern</button></div>`);
+  setTimeout(()=>document.getElementById("n_body").focus(),50);
+}
+window.editNote=editNote;
+async function saveNote(id){
+  const body=document.getElementById("n_body").value.trim(), date=document.getElementById("n_date").value||today();
+  if(!body){ toast("Bitte Text eingeben"); return; }
+  const n=DB.notes.find(x=>x.id===id); n.body=body; n.date=date; await upsert("notes",n);
+  closeModal(); render(); toast("Notiz gespeichert");
+}
+window.saveNote=saveNote;
+async function delNote(id){ if(!confirm("Notiz löschen?")) return; DB.notes=DB.notes.filter(x=>x.id!==id); await removeRow("notes",id); render(); }
+window.delNote=delNote;
+
+function editAppt(id,projectId){
+  const a=id?DB.appts.find(x=>x.id===id):{id:null,project_id:projectId,title:"",date:today(),time:"",place:"",note:""};
+  openModal(`<h3>${id?"Termin bearbeiten":"Neuer Termin"}</h3>
+    <label class="fld"><span class="lab">Titel</span><input id="a_title" value="${esc(a.title)}" placeholder="z.B. Baustellenbegehung"></label>
+    <div class="row2">
+      <label class="fld"><span class="lab">Datum</span><input id="a_date" type="date" value="${a.date||today()}"></label>
+      <label class="fld"><span class="lab">Uhrzeit</span><input id="a_time" type="time" value="${a.time||""}"></label>
+    </div>
+    <label class="fld"><span class="lab">Ort</span><input id="a_place" value="${esc(a.place||"")}" placeholder="Treffpunkt / Ort"></label>
+    <label class="fld"><span class="lab">Notiz</span><textarea id="a_note" placeholder="Optional">${esc(a.note||"")}</textarea></label>
+    <div class="modalbtns"><button class="btn sec" onclick="closeModal()">Abbrechen</button><button class="btn" onclick="saveAppt('${id||""}','${a.project_id}')">Speichern</button></div>`);
+}
+window.editAppt=editAppt;
+async function saveAppt(id,projectId){
+  const title=document.getElementById("a_title").value.trim(), date=document.getElementById("a_date").value;
+  if(!title){ toast("Bitte Titel eingeben"); return; }
+  if(!date){ toast("Bitte Datum wählen"); return; }
+  const time=document.getElementById("a_time").value, place=document.getElementById("a_place").value.trim(), note=document.getElementById("a_note").value.trim();
+  if(id){ const a=DB.appts.find(x=>x.id===id); Object.assign(a,{title,date,time,place,note}); await upsert("appts",a); }
+  else { const a={id:uid(),project_id:projectId,title,date,time,place,note,created:new Date().toISOString()}; DB.appts.push(a); await upsert("appts",a); }
+  closeModal(); render(); toast("Termin gespeichert");
+}
+window.saveAppt=saveAppt;
+async function delAppt(id){ if(!confirm("Termin löschen?")) return; DB.appts=DB.appts.filter(x=>x.id!==id); await removeRow("appts",id); render(); }
+window.delAppt=delAppt;
+
+/* ---------- Einstellungen / Sync ---------- */
+document.getElementById("btnSettings").onclick=openSettings;
+function openSettings(){
+  openModal(`<h3>Einstellungen</h3>
+    <div class="hint">Ohne Eingabe läuft alles <b>lokal auf diesem Gerät</b>. Für Synchronisation zwischen PC und Handy die kostenlosen Supabase-Zugangsdaten eintragen (siehe Anleitung).</div>
+    <label class="fld"><span class="lab">Supabase Projekt-URL</span><input id="c_url" value="${esc(CFG.url)}" placeholder="https://xxxx.supabase.co"></label>
+    <label class="fld"><span class="lab">Supabase anon key</span><input id="c_key" value="${esc(CFG.key)}" placeholder="eyJ..."></label>
+    <div class="modalbtns"><button class="btn sec" onclick="closeModal()">Abbrechen</button><button class="btn" onclick="saveSettings()">Speichern & verbinden</button></div>
+    <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap">
+      <button class="btn sec small" onclick="exportData()">Daten exportieren (Backup)</button>
+      <button class="btn sec small" onclick="document.getElementById('importFile').click()">Daten importieren</button>
+    </div>
+    <input type="file" id="importFile" accept="application/json" style="display:none">`);
+  document.getElementById("importFile").onchange=importData;
+}
+window.openSettings=openSettings;
+async function saveSettings(){
+  CFG.url=cleanUrl(document.getElementById("c_url").value); CFG.key=document.getElementById("c_key").value.trim();
+  saveCfg(); initSync();
+  if(sb){ toast("Verbinde & synchronisiere..."); await pull(); render(); toast("Sync aktiv"); } else { toast("Lokaler Modus"); }
+  closeModal();
+}
+window.saveSettings=saveSettings;
+function exportData(){
+  const blob=new Blob([JSON.stringify(DB,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="projekt-cockpit-backup-"+today()+".json"; a.click();
+}
+window.exportData=exportData;
+function importData(e){
+  const f=e.target.files[0]; if(!f) return; const r=new FileReader();
+  r.onload=()=>{ try{ const d=JSON.parse(r.result); if(d.projects){ DB=d; (DB.notes||[]).forEach(n=>{if(!n.date)n.date=n.created?n.created.slice(0,10):today();}); saveLocal(); closeModal(); render(); toast("Daten importiert"); } else toast("Ungültige Datei"); }catch(err){ toast("Fehler beim Import"); } };
+  r.readAsText(f);
+}
+window.importData=importData;
+
+/* ---------- Start ---------- */
+async function start(){ loadLocal(); initSync(); if(sb){ await pull(); } render(); }
+start();
+</script>
+</body>
+</html>
